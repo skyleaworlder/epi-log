@@ -9,6 +9,11 @@ import (
 	"syscall"
 )
 
+const (
+	levelDefault      logLevel = INFO
+	maxItemNumDefault int      = 1
+)
+
 // Logger is a struct
 type Logger struct {
 	// FATAL > WARNING > INFO > DEBUG
@@ -26,55 +31,58 @@ type Logger struct {
 }
 
 // New is a constructor
-func New(level logLevel, maxItemNum int) (lgr *Logger) {
+func New() (lgr *Logger) {
 	appenders := make(map[string]Appender)
 	appenders["stdio"] = &StdAppender{}
 	return &Logger{
-		level:     level,
+		level:     levelDefault,
 		appenders: appenders,
-		buffer:    NewBuffer(maxItemNum),
+		buffer:    NewBuffer(maxItemNumDefault),
 		seqNum:    0,
 		mtx:       &sync.Mutex{},
 	}
 }
 
-// Use is to use plugins
+// Use is to use epilog.
+// and Use method will generate a signal procecss goroutine.
+// by this signal-process goroutine, epilog can process unexpected signals.
+// what's more, Use also calls Monitor!
 func (lgr *Logger) Use() {
-}
-
-// Run is to run
-func (lgr *Logger) Run() {
 	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	signal.Notify(
+		sigs,
+		syscall.SIGABRT, syscall.SIGALRM, syscall.SIGBUS, syscall.SIGFPE,
+		syscall.SIGHUP, syscall.SIGILL, syscall.SIGINT, syscall.SIGKILL,
+		syscall.SIGPIPE, syscall.SIGQUIT, syscall.SIGSEGV, syscall.SIGTERM,
+		syscall.SIGTRAP,
+	)
 	go func() {
 		for sig := range sigs {
 			switch sig {
 			case syscall.SIGINT:
-				fmt.Println("syscall.SIGINT:", sig)
-				lgr.urgentExit()
+				lgr.Warningln("syscall.SIGINT:", sig)
 			case syscall.SIGTERM:
-				fmt.Println("syscall.SIGTERM:", sig)
-				lgr.urgentExit()
+				lgr.Warningln("syscall.SIGTERM:", sig)
 			case syscall.SIGKILL:
-				fmt.Println("syscall.SIGKILL:", sig)
-				lgr.urgentExit()
+				lgr.Warningln("syscall.SIGKILL:", sig)
 			default:
-				fmt.Println("what?")
+				lgr.Warningln("I do not know what happened just now.")
 			}
+			lgr.End()
 		}
 	}()
 
 	lgr.Monitor()
 }
 
-// urgentExit is to exit
-func (lgr *Logger) urgentExit() {
+// End is to exit
+func (lgr *Logger) End() {
 	for item := range lgr.buffer.items {
 		// append content to appenders
 		for _, appender := range lgr.appenders {
 			err := appender.Append(item.Serialize())
 			if err != nil {
-				// in urgentExit, "Append Failure" is a fatal error
+				// in End, "Append Failure" is a fatal error
 				os.Exit(0)
 				goto AppendError
 			}
@@ -92,9 +100,9 @@ func (lgr *Logger) urgentExit() {
 	os.Exit(0)
 
 AppendError:
-	errmsg := "epilog.urgentExit Error: Appender Append Failed"
+	errmsg := "epilog.End Error: Appender Append Failed"
 	if err := lgr.appenders["stdio"].Append(errmsg); err != nil {
-		fmt.Println("epilog.urgentExit Error: Appender stdio Append Failed")
+		fmt.Println("epilog.End Error: Appender stdio Append Failed")
 	}
 	os.Exit(0)
 }
