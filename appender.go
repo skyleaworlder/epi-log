@@ -7,8 +7,19 @@ import (
 	"os"
 )
 
+var (
+	appenderID int = 0
+)
+
 // StdAppender is an appender.
 type StdAppender struct {
+	id int
+}
+
+// NewStdAppender is default constructor of appender.
+func NewStdAppender() *StdAppender {
+	defer func() { appenderID++ }()
+	return &StdAppender{id: appenderID}
 }
 
 // Append is to implement interface "Appender"
@@ -23,6 +34,16 @@ type FileAppender struct {
 	id   int
 	name string
 	fd   *os.File
+}
+
+// NewFileAppender is a constructor of FileAppender.
+func NewFileAppender(name string, fd *os.File) *FileAppender {
+	defer func() { appenderID++ }()
+	return &FileAppender{
+		id:   appenderID,
+		name: name,
+		fd:   fd,
+	}
 }
 
 // Append is to implement interface "Appender"
@@ -41,6 +62,16 @@ type SocketAppender struct {
 	id   int
 	name string
 	ip   net.TCPAddr
+}
+
+// NewSocketAppender is a constructor of SocketAppender.
+func NewSocketAppender(name string, ip net.TCPAddr) *SocketAppender {
+	defer func() { appenderID++ }()
+	return &SocketAppender{
+		id:   appenderID,
+		name: name,
+		ip:   ip,
+	}
 }
 
 // Append is to implement interface "Appender"
