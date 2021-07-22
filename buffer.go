@@ -17,6 +17,7 @@ type Buffer struct {
 // BufferItem is a struct
 type BufferItem struct {
 	id       int
+	typ      string
 	time     time.Time
 	filename string
 	line     int
@@ -41,7 +42,6 @@ func (b *Buffer) Put(item Item) {
 	// if b.items is full, b.full <- true
 	select {
 	case b.items <- item:
-		fmt.Println("<-item", cap(b.full))
 	default:
 		b.full <- true
 
@@ -63,8 +63,8 @@ func (b *Buffer) Put(item Item) {
 // Serialize is to implement interface "Item"
 func (i BufferItem) Serialize() (res string) {
 	res = fmt.Sprintf(
-		"[%d] %s: %s Line_%d -> %s",
-		i.id, i.time, i.filename, i.line, i.content,
+		"[%d] %s %s: %s Line_%d -> %s",
+		i.id, i.time, i.typ, i.filename, i.line, i.content,
 	)
 	return
 }
