@@ -2,7 +2,7 @@ package epilog
 
 // Appender is an interface
 type Appender interface {
-	Append() (err error)
+	Append(content string) (err error)
 }
 
 // Item is an interface.
