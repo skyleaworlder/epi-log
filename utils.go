@@ -13,7 +13,7 @@ func innerPrint(lgr *Logger, newLine bool, level logLevel, args ...interface{}) 
 	} else {
 		content = fmt.Sprint(args...)
 	}
-	_, filename, line, _ := runtime.Caller(0)
+	_, filename, line, _ := runtime.Caller(2)
 
 	var typ string
 	switch level {
